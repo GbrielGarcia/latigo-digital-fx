@@ -33,6 +33,14 @@ await Promise.all([
   }),
   build({
     ...common,
+    entryPoints: [join(root, 'src/renderer/overlayMain.ts')],
+    outfile: join(dist, 'renderer/overlay.js'),
+    platform: 'browser',
+    format: 'iife',
+    target: ['chrome120'],
+  }),
+  build({
+    ...common,
     entryPoints: [join(root, 'src/electron/main.ts')],
     outfile: join(dist, 'electron/main.cjs'),
     platform: 'node',
@@ -62,7 +70,9 @@ await Promise.all([
     : Promise.resolve(),
 ]);
 
-for (const file of ['index.html', 'styles.css']) {
+for (const file of ['index.html', 'styles.css', 'overlay.html', 'overlay.css']) {
   cpSync(join(root, 'src/renderer', file), join(dist, 'renderer', file));
 }
+// Tray / menu-bar icon used by the desktop mode.
+cpSync(join(root, 'build/icon.png'), join(dist, 'electron/tray.png'));
 console.log('Build OK → dist/');

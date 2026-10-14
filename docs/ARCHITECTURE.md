@@ -17,6 +17,10 @@
 └──────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
+## Desktop mode
+
+See [DESKTOP_MODE.md](DESKTOP_MODE.md). The main process owns a single in-memory copy of the settings (persisted and broadcast to both windows), a pure `DesktopController` that reconciles them with OS resources through ports (`OverlayWindowManager`, `GlobalInputManager`, `GlobalShortcutManager`, `TrayManager`), and the overlay renderer (`src/overlay/overlayApp.ts`) reuses `Simulation`, `Renderer` (transparent mode), `ImpactEffects` and `AudioEngine`.
+
 ## Frame loop (`LatigoApp.frame`)
 
 1. Measure real `frameDt`; update the demo director (demo mode).

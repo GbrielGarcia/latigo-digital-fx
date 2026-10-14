@@ -7,6 +7,7 @@ import {
   MAX_SETTINGS_SIZE,
   parseSettings,
   serializeSettings,
+  SETTINGS_VERSION,
   validateSettings,
 } from '../src/config/settings';
 import { SettingsFileStore } from '../src/electron/settingsStore';
@@ -49,7 +50,7 @@ describe('Settings — loading and validation', () => {
 
   it('clamps out-of-range numbers and rejects wrong types field by field', () => {
     const r = validateSettings({
-      version: 1,
+      version: SETTINGS_VERSION,
       volume: 7,
       length: -3,
       nodeCount: 33.6,
@@ -86,7 +87,7 @@ describe('Settings — loading and validation', () => {
 
   it('migrates a missing version without flagging it as corrupt', () => {
     const r = validateSettings({ theme: 'light' });
-    expect(r.settings.version).toBe(1);
+    expect(r.settings.version).toBe(SETTINGS_VERSION);
     expect(r.settings.theme).toBe('light');
     expect(r.recovered).toBe(false);
   });

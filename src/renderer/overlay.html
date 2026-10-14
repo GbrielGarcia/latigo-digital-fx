@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'"
+    />
+    <title>Látigo Digital FX — superposición</title>
+    <link rel="stylesheet" href="overlay.css" />
+  </head>
+  <body>
+    <canvas id="overlay-stage" aria-label="Látigo Digital FX sobre el escritorio"></canvas>
+    <div class="interactive-banner" id="interactive-banner" role="status" hidden>
+      <strong>Modo interactivo</strong>: el látigo recibe el ratón en esta pantalla. Arrastra y suelta para
+      dar un latigazo.
+      <button type="button" id="restore-click-through">Volver al paso de clics (Esc)</button>
+    </div>
+    <script src="overlay.js"></script>
+  </body>
+</html>

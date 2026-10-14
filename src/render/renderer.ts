@@ -19,6 +19,8 @@ export interface RenderOptions {
   target: TrainingTarget | null;
   /** Real time in seconds, for subtle animations. */
   time: number;
+  /** Opacity multiplier for trail, sparks, shockwaves and flash (overlay). */
+  effectsOpacity?: number;
 }
 
 /**
@@ -38,14 +40,21 @@ export class Renderer {
   private rightY = new Float32Array(0);
   private bgCache: { key: string; canvas: HTMLCanvasElement | null } = { key: '', canvas: null };
 
-  constructor(private canvas: HTMLCanvasElement) {
-    const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
+  /**
+   * `transparent` (desktop overlay): the canvas keeps an alpha channel and only
+   * the whip and its effects are drawn; everything else stays see-through.
+   */
+  constructor(
+    private canvas: HTMLCanvasElement,
+    readonly transparent = false,
+  ) {
+    const ctx = canvas.getContext('2d', { alpha: transparent, desynchronized: !transparent });
     if (!ctx) throw new Error('Canvas 2D no disponible');
     this.ctx = ctx;
   }
 
-  resize(cssWidth: number, cssHeight: number, dpr: number, reach: number): void {
-    this.camera.resize(cssWidth, cssHeight, dpr, reach);
+  resize(cssWidth: number, cssHeight: number, dpr: number, reach: number, fixedPxPerMeter = 0): void {
+    this.camera.resize(cssWidth, cssHeight, dpr, reach, fixedPxPerMeter);
     const w = Math.max(1, Math.round(cssWidth * this.camera.dpr));
     const h = Math.max(1, Math.round(cssHeight * this.camera.dpr));
     if (this.canvas.width !== w || this.canvas.height !== h) {
@@ -112,6 +121,10 @@ export class Renderer {
   private drawBackground(o: RenderOptions): void {
     const ctx = this.ctx;
     const cam = this.camera;
+    if (this.transparent) {
+      ctx.clearRect(0, 0, cam.cssWidth, cam.cssHeight);
+      return;
+    }
     const w = cam.cssWidth;
     const h = cam.cssHeight;
     const key = `${o.theme.id}|${o.background}|${w}x${h}@${cam.dpr}|${cam.pxPerMeter.toFixed(2)}`;
@@ -333,6 +346,7 @@ export class Renderer {
     const maxAge = 0.06 + 0.3 * o.trail;
     const newest = trail.t[trail.index(0)];
     ctx.save();
+    ctx.globalAlpha = o.effectsOpacity ?? 1;
     if (o.theme.additiveEffects) ctx.globalCompositeOperation = 'lighter';
     ctx.lineCap = 'round';
     for (let i = 0; i < trail.count - 1; i++) {
@@ -396,7 +410,9 @@ export class Renderer {
     const ctx = this.ctx;
     const cam = this.camera;
     const theme = o.theme;
+    const opacity = o.effectsOpacity ?? 1;
     ctx.save();
+    ctx.globalAlpha = opacity;
     if (theme.additiveEffects) ctx.globalCompositeOperation = 'lighter';
     for (const s of effects.shockwaves) {
       const t = s.age / s.life;
@@ -412,14 +428,30 @@ export class Renderer {
     for (let i = 0; i < p.capacity; i++) {
       if (p.life[i] <= 0) continue;
       const life = p.life[i] / p.maxLife[i];
-      ctx.globalAlpha = life;
+      ctx.globalAlpha = life * opacity;
       const size = p.size[i] * (0.6 + life);
       ctx.fillRect(cam.sx(p.x[i]) - size / 2, cam.sy(p.y[i]) - size / 2, size, size);
     }
     ctx.globalAlpha = 1;
     ctx.restore();
     if (effects.flash > 0.001) {
-      ctx.fillStyle = `rgba(${theme.flash},${effects.flash.toFixed(3)})`;
+      const alpha = effects.flash * opacity;
+      const last = effects.shockwaves[effects.shockwaves.length - 1];
+      if (this.transparent) {
+        // Over the desktop a full-screen flash would cover the user's apps:
+        // use a local glow around the crack instead.
+        if (!last) return;
+        const x = cam.sx(last.x);
+        const y = cam.sy(last.y);
+        const r = cam.pxPerMeter * 0.9;
+        const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+        g.addColorStop(0, `rgba(${theme.flash},${alpha.toFixed(3)})`);
+        g.addColorStop(1, `rgba(${theme.flash},0)`);
+        ctx.fillStyle = g;
+        ctx.fillRect(x - r, y - r, r * 2, r * 2);
+        return;
+      }
+      ctx.fillStyle = `rgba(${theme.flash},${alpha.toFixed(3)})`;
       ctx.fillRect(0, 0, cam.cssWidth, cam.cssHeight);
     }
   }

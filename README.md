@@ -19,7 +19,8 @@ Látigo Digital FX models a whip as a chain of point masses connected by constra
 - **Modes**: free, practice (contextual hints), demo (autonomous, yields to the user), lab (FPS, sim rate, node count, handle/tip speed, energy, phase, crack count, audio status and latency, per-node speed overlay), slow motion, training (hit targets with the crack).
 - **Settings** persisted in the OS user-data directory with validation, clamping, atomic writes and corrupt-file recovery (a backup copy is kept).
 - **Accessibility**: full keyboard control, Spanish labels, reduce motion, disable flashes, disable shake, mute.
-- **Privacy**: fully offline. No telemetry, no network requests, no global input hooks, no screen capture, no admin rights.
+- **Desktop mode («Modo escritorio»)**: the same whip in a transparent, click-through, always-on-top overlay above other applications, driven by the global cursor, with configurable global shortcuts (strike, show/hide, pause, mute), multi-monitor support, a tray / menu-bar icon and a configurable close behaviour. See [docs/DESKTOP_MODE.md](docs/DESKTOP_MODE.md).
+- **Privacy**: fully offline. No telemetry, no network requests, no screen capture, no keystroke logging, no admin rights. In desktop mode only the cursor position and the declared shortcuts are used, through official APIs.
 
 ## Requirements
 
@@ -39,6 +40,7 @@ Other useful scripts:
 | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | `npm test`                                     | Unit + integration tests (Vitest, headless)                                                                          |
 | `npm run check`                                | Typecheck + lint + format check + tests                                                                              |
+| `npm run test:desktop`                         | Desktop-mode integration test on the real OS (overlay, shortcuts, tray, quit)                                        |
 | `npm run smoke`                                | Launches the real Electron app, performs a strike and reports (exits 0/1)                                            |
 | `npm run bench`                                | Headless physics benchmark on this machine                                                                           |
 | `npm run dev:web`                              | Serves the renderer at `http://127.0.0.1:5178` for quick UI work in a browser (settings fall back to `localStorage`) |
@@ -66,6 +68,17 @@ See [docs/BUILDING.md](docs/BUILDING.md) for platform specifics, code signing an
 
 Shortcuts are ignored while a form control has focus, so they never fight native control behaviour.
 
+### Desktop mode shortcuts (global, configurable)
+
+| macOS | Windows / Linux  | Action                       |
+| ----- | ---------------- | ---------------------------- |
+| ⌘⌥⇧J  | Ctrl+Alt+Shift+J | Strike                       |
+| ⌘⌥⇧K  | Ctrl+Alt+Shift+K | Show / hide the desktop whip |
+| ⌘⌥⇧P  | Ctrl+Alt+Shift+P | Pause / resume effects       |
+| ⌘⌥⇧M  | Ctrl+Alt+Shift+M | Mute / unmute                |
+
+Permissions: none on macOS (no Accessibility / Input Monitoring prompt) or Windows. On Linux/Wayland the compositor restricts global cursor reading and shortcuts — see [docs/DESKTOP_MODE.md](docs/DESKTOP_MODE.md).
+
 ## Architecture
 
 ```
@@ -84,7 +97,11 @@ src/
   ui/            Spanish DOM UI bindings
   diagnostics/   FrameStats
   app/           LatigoApp orchestrator, settings persistence
-  electron/      main process, preload bridge, settings file store
+  desktop/       Pure desktop-mode logic: DesktopController, DesktopCoordinateMapper,
+                 GlobalShortcutManager, accelerators, platform capabilities, IPC protocol
+  overlay/       OverlayApp (transparent overlay renderer reusing core/render/audio)
+  electron/      main process, preload bridge, settings file store,
+                 OverlayWindowManager, GlobalInputManager, TrayManager, desktop self-test
   renderer/      index.html, styles.css, entry point
 tests/           Vitest suites (Node environment, no DOM)
 bench/           Headless benchmark
@@ -98,7 +115,7 @@ Evaluated against Godot, C++/SDL and Rust: on the target machines only Node.js w
 
 ## Testing
 
-`npm test` runs 79 tests (all passing at the time of the initial commit) covering rope initialisation, segment lengths, rest stability, handle movement, wave propagation, tip amplification, recovery, high-speed stability, NaN/Infinity handling, fixed timestep consistency across frame rates, crack detection, duplicate-sound prevention, reset, settings loading and corrupt-file recovery, the settings file store, audio synthesis, bounded effects and headless execution. Details and limits: [docs/TESTING.md](docs/TESTING.md).
+`npm test` runs 109 unit/integration tests (all passing at the desktop-mode commit; 79 at the initial commit) covering rope initialisation, segment lengths, rest stability, handle movement, wave propagation, tip amplification, recovery, high-speed stability, NaN/Infinity handling, fixed timestep consistency across frame rates, crack detection, duplicate-sound prevention, reset, settings loading and corrupt-file recovery, the settings file store, audio synthesis, bounded effects and headless execution. `npm run test:desktop` runs 38 checks against the real overlay window, global shortcuts, tray and quit path (38/38 on macOS 26.6 arm64). Details and limits: [docs/TESTING.md](docs/TESTING.md).
 
 ## Compatibility
 

@@ -1,5 +1,13 @@
-import { RANGES, type Settings, type ThemeId } from '../config/settings';
+import { DESKTOP_RANGES, RANGES, type Settings, type ThemeId } from '../config/settings';
 import { PHASE_LABELS, type WhipPhase } from '../core/whip/phaseMachine';
+import {
+  acceleratorFromKeyEvent,
+  formatAccelerator,
+  SHORTCUT_ACTIONS,
+  SHORTCUT_LABELS,
+  type ShortcutAction,
+} from '../desktop/accelerators';
+import type { DesktopStatus } from '../desktop/protocol';
 import { THEMES } from '../render/themes';
 
 export interface UiCallbacks {
@@ -13,6 +21,7 @@ export interface UiCallbacks {
   onTogglePanels(): void;
   onToggleSettingsPanel(): void;
   onRestoreDefaults(): void;
+  onRestoreDesktopDefaults(): void;
 }
 
 type RangeKey = keyof typeof RANGES;
@@ -25,7 +34,14 @@ const PERCENT_KEYS = new Set<string>([
   'effectsIntensity',
   'trail',
   'particles',
+  'desktop.whipSize',
+  'desktop.effectsOpacity',
 ]);
+
+function rangeFor(path: string): { min: number; max: number; step: number } | undefined {
+  if (path.startsWith('desktop.')) return DESKTOP_RANGES[path.slice(8) as keyof typeof DESKTOP_RANGES];
+  return RANGES[path as RangeKey];
+}
 
 export function formatSettingValue(key: string, value: number): string {
   if (key === 'length') return `${value.toFixed(2)} m`;
@@ -42,10 +58,12 @@ function byId<T extends HTMLElement>(id: string): T {
 }
 
 function readPath(settings: Settings, path: string): unknown {
-  const [a, b] = path.split('.');
-  const first = (settings as unknown as Record<string, unknown>)[a];
-  if (b === undefined) return first;
-  return (first as Record<string, unknown> | undefined)?.[b];
+  let node: unknown = settings;
+  for (const part of path.split('.')) {
+    if (typeof node !== 'object' || node === null) return undefined;
+    node = (node as Record<string, unknown>)[part];
+  }
+  return node;
 }
 
 /**
@@ -89,7 +107,7 @@ export class Ui {
     for (const el of document.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-setting]')) {
       const path = el.dataset.setting as string;
       if (el instanceof HTMLInputElement && el.type === 'range') {
-        const range = RANGES[path as RangeKey];
+        const range = rangeFor(path);
         if (range) {
           el.min = String(range.min);
           el.max = String(range.max);
@@ -133,6 +151,8 @@ export class Ui {
     bind('btn-show', () => this.cb.onTogglePanels());
     bind('btn-settings', () => this.cb.onToggleSettingsPanel());
     bind('btn-defaults', () => this.cb.onRestoreDefaults());
+    bind('btn-desktop-defaults', () => this.cb.onRestoreDesktopDefaults());
+    this.bindShortcutRecorders();
     bind('help-close', () => this.closeHelp());
     this.help.addEventListener('close', () => document.getElementById('stage')?.focus());
   }
@@ -155,6 +175,10 @@ export class Ui {
         el.value = String(value);
         if (el instanceof HTMLInputElement && el.type === 'range') this.updateOutput(path, Number(value));
       }
+    }
+    for (const action of SHORTCUT_ACTIONS) {
+      const label = document.querySelector<HTMLElement>(`[data-shortcut-label="${action}"]`);
+      if (label) label.textContent = formatAccelerator(settings.desktop.shortcuts[action], this.platform);
     }
     this.setMuted(settings.muted);
     this.setTheme(settings.theme);
@@ -256,6 +280,107 @@ export class Ui {
 
   setSettingsLocation(text: string): void {
     byId('settings-location').textContent = text ? `Preferencias: ${text}` : '';
+  }
+
+  /** Platform used to record and display shortcuts. */
+  platform = navigator.platform.toLowerCase().includes('mac') ? 'darwin' : 'other';
+  private recording: {
+    action: ShortcutAction;
+    button: HTMLButtonElement;
+    handler: (e: KeyboardEvent) => void;
+  } | null = null;
+
+  private bindShortcutRecorders(): void {
+    for (const button of document.querySelectorAll<HTMLButtonElement>('[data-record]')) {
+      button.addEventListener('click', () => {
+        const action = button.dataset.record as ShortcutAction;
+        if (this.recording) this.stopRecording();
+        this.startRecording(action, button);
+      });
+    }
+  }
+
+  private startRecording(action: ShortcutAction, button: HTMLButtonElement): void {
+    button.dataset.recording = 'true';
+    button.textContent = 'Pulsa la combinación…';
+    const handler = (e: KeyboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.key === 'Escape') {
+        this.stopRecording();
+        return;
+      }
+      const acc = acceleratorFromKeyEvent(e, this.platform);
+      if (!acc) {
+        if (!['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) {
+          this.toast('Combinación no válida: incluye ⌘/Ctrl, ⌥/Alt o Super además de una tecla.');
+        }
+        return;
+      }
+      this.stopRecording();
+      this.cb.onSetting(`desktop.shortcuts.${action}`, acc);
+      this.toast(`${SHORTCUT_LABELS[action]}: ${formatAccelerator(acc, this.platform)}`);
+    };
+    window.addEventListener('keydown', handler, { capture: true });
+    this.recording = { action, button, handler };
+  }
+
+  private stopRecording(): void {
+    if (!this.recording) return;
+    const { button, handler } = this.recording;
+    window.removeEventListener('keydown', handler, { capture: true });
+    button.dataset.recording = 'false';
+    button.textContent = 'Cambiar';
+    this.recording = null;
+  }
+
+  get isRecordingShortcut(): boolean {
+    return this.recording !== null;
+  }
+
+  setDesktopStatus(status: DesktopStatus | null): void {
+    const section = byId<HTMLElement>('desktop-section');
+    const statusEl = byId<HTMLElement>('desktop-status');
+    const errors = byId<HTMLElement>('shortcut-errors');
+    const notes = byId<HTMLUListElement>('desktop-notes');
+    if (!status || !status.supported) {
+      section.dataset.supported = 'false';
+      for (const el of section.querySelectorAll<HTMLInputElement | HTMLButtonElement | HTMLSelectElement>(
+        'input, button, select',
+      )) {
+        el.disabled = true;
+      }
+      statusEl.textContent = 'Disponible solo en la aplicación de escritorio (no en la vista web).';
+      return;
+    }
+    section.dataset.supported = 'true';
+    let text: string;
+    if (!status.enabled) text = 'Desactivado. Actívalo para usar el látigo sobre otras aplicaciones.';
+    else if (!status.overlayVisible) text = 'Activado · superposición oculta.';
+    else
+      text = `Activo sobre el escritorio · ${status.paused ? 'en pausa' : 'en marcha'} · ${
+        status.clickThrough ? 'paso de clics activado' : 'modo interactivo (captura el ratón)'
+      } · ${status.cursorTracking ? 'siguiendo el cursor' : 'cursor sin seguimiento'} · ${status.displays} pantalla(s)`;
+    statusEl.textContent = text;
+
+    const failed = status.shortcuts.filter((sc) => !sc.registered);
+    errors.textContent = failed
+      .map((sc) => `${SHORTCUT_LABELS[sc.action]}: ${sc.error ?? 'no disponible'}`)
+      .join(' ');
+    for (const action of SHORTCUT_ACTIONS) {
+      const label = document.querySelector<HTMLElement>(`[data-shortcut-label="${action}"]`);
+      if (label) label.dataset.state = failed.some((f) => f.action === action) ? 'error' : 'ok';
+    }
+    const noteList = status.capabilities?.notes ?? [];
+    if (notes.childElementCount !== noteList.length) {
+      notes.replaceChildren(
+        ...noteList.map((n) => {
+          const li = document.createElement('li');
+          li.textContent = n;
+          return li;
+        }),
+      );
+    }
   }
 
   toast(message: string, ms = 2600): void {

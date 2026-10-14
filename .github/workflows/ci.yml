@@ -66,6 +66,15 @@ jobs:
         if: runner.os != 'Linux'
         run: npx electron . --smoke-test
 
+      - name: Desktop-mode self-test (Linux, virtual display)
+        if: runner.os == 'Linux'
+        # Xvfb has no compositor or tray: informative only.
+        continue-on-error: true
+        run: xvfb-run -a npx electron . --desktop-self-test --no-sandbox
+      - name: Desktop-mode self-test (macOS / Windows)
+        if: runner.os != 'Linux'
+        run: npx electron . --desktop-self-test
+
       - name: Package (unpacked directory, unsigned)
         run: npx electron-builder --dir --publish never
       - name: Upload CI artifact

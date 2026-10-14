@@ -20,6 +20,13 @@ async function boot(): Promise<void> {
   const bridge = window.latigoDesktop;
   // The desktop shell allows audio without a prior gesture.
   if (bridge) app.enableAudio();
+  if (bridge) {
+    bridge.onSettingsChanged((text) => app.applyExternalSettings(text));
+    bridge.onDesktopStatus((status) => app.ui.setDesktopStatus(status));
+    void bridge.getDesktopStatus().then((status) => app.ui.setDesktopStatus(status));
+  } else {
+    app.ui.setDesktopStatus(null);
+  }
   if (bridge?.isSmokeTest) runSmokeTest(app);
   // Exposed for debugging from the developer tools only.
   (window as unknown as { latigoApp?: LatigoApp }).latigoApp = app;

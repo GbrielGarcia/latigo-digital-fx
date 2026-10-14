@@ -1,8 +1,15 @@
 import { clamp } from '../core/math/scalar';
 import type { QualityLevel } from '../core/whip/params';
 import type { StrikeStyle } from '../core/whip/strikeDriver';
+import {
+  DEFAULT_SHORTCUTS,
+  normaliseAccelerator,
+  SHORTCUT_ACTIONS,
+  type ShortcutAction,
+} from '../desktop/accelerators';
 
-export const SETTINGS_VERSION = 1;
+/** v2 adds the `desktop` section; v1 files are migrated without data loss. */
+export const SETTINGS_VERSION = 2;
 /** Hard limit for the serialised settings file (bytes / characters). */
 export const MAX_SETTINGS_SIZE = 64 * 1024;
 
@@ -14,6 +21,28 @@ export interface AccessibilitySettings {
   reduceMotion: boolean;
   disableFlash: boolean;
   disableShake: boolean;
+}
+
+export type CloseBehavior = 'tray' | 'quit';
+
+/** «Modo escritorio»: the global overlay over other applications. */
+export interface DesktopSettings {
+  /** Master switch for the global desktop mode (off by default). */
+  enabled: boolean;
+  overlayVisible: boolean;
+  /** Feed the global cursor position into the simulation. */
+  followCursor: boolean;
+  /** Let clicks pass through the transparent overlay to the apps below. */
+  clickThrough: boolean;
+  /** Move the overlay to the monitor under the cursor. */
+  multiMonitor: boolean;
+  sound: boolean;
+  /** Opacity of trails, sparks and shockwaves (the empty area stays transparent). */
+  effectsOpacity: number;
+  /** Whip reach as a fraction of the screen height. */
+  whipSize: number;
+  closeBehavior: CloseBehavior;
+  shortcuts: Record<ShortcutAction, string>;
 }
 
 export interface Settings {
@@ -41,6 +70,29 @@ export interface Settings {
   strikeStyle: StrikeStyle;
   panelsVisible: boolean;
   accessibility: AccessibilitySettings;
+  desktop: DesktopSettings;
+}
+
+export const DEFAULT_DESKTOP_SETTINGS: Readonly<DesktopSettings> = Object.freeze({
+  enabled: false,
+  overlayVisible: true,
+  followCursor: true,
+  clickThrough: true,
+  multiMonitor: true,
+  sound: true,
+  effectsOpacity: 0.9,
+  whipSize: 0.45,
+  closeBehavior: 'tray',
+  shortcuts: Object.freeze({ ...DEFAULT_SHORTCUTS }),
+}) as DesktopSettings;
+
+export const DESKTOP_RANGES = {
+  effectsOpacity: { min: 0.1, max: 1, step: 0.01 },
+  whipSize: { min: 0.2, max: 0.9, step: 0.01 },
+} as const satisfies Record<string, { min: number; max: number; step: number }>;
+
+export function cloneDesktopDefaults(): DesktopSettings {
+  return { ...DEFAULT_DESKTOP_SETTINGS, shortcuts: { ...DEFAULT_DESKTOP_SETTINGS.shortcuts } };
 }
 
 export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
@@ -67,6 +119,7 @@ export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
   strikeStyle: 'side',
   panelsVisible: true,
   accessibility: Object.freeze({ reduceMotion: false, disableFlash: false, disableShake: false }),
+  desktop: DEFAULT_DESKTOP_SETTINGS,
 }) as Settings;
 
 /** Numeric ranges (also used by the UI sliders). */
@@ -105,7 +158,57 @@ export interface LoadResult {
 }
 
 export function cloneDefaults(): Settings {
-  return { ...DEFAULT_SETTINGS, accessibility: { ...DEFAULT_SETTINGS.accessibility } };
+  return {
+    ...DEFAULT_SETTINGS,
+    accessibility: { ...DEFAULT_SETTINGS.accessibility },
+    desktop: cloneDesktopDefaults(),
+  };
+}
+
+function validateDesktop(input: unknown, target: DesktopSettings, issues: string[]): void {
+  if (!isRecord(input)) {
+    issues.push('desktop: invalid object');
+    return;
+  }
+  for (const key of [
+    'enabled',
+    'overlayVisible',
+    'followCursor',
+    'clickThrough',
+    'multiMonitor',
+    'sound',
+  ] as const) {
+    if (!(key in input)) continue;
+    if (typeof input[key] === 'boolean') target[key] = input[key] as boolean;
+    else issues.push(`desktop.${key}: invalid boolean`);
+  }
+  for (const key of Object.keys(DESKTOP_RANGES) as (keyof typeof DESKTOP_RANGES)[]) {
+    if (!(key in input)) continue;
+    const raw = input[key];
+    if (typeof raw !== 'number' || !Number.isFinite(raw)) {
+      issues.push(`desktop.${key}: invalid number`);
+      continue;
+    }
+    target[key] = clamp(raw, DESKTOP_RANGES[key].min, DESKTOP_RANGES[key].max);
+  }
+  if ('closeBehavior' in input) {
+    if (input.closeBehavior === 'tray' || input.closeBehavior === 'quit')
+      target.closeBehavior = input.closeBehavior;
+    else issues.push('desktop.closeBehavior: invalid value');
+  }
+  if ('shortcuts' in input) {
+    const sc = input.shortcuts;
+    if (isRecord(sc)) {
+      for (const action of SHORTCUT_ACTIONS) {
+        if (!(action in sc)) continue;
+        const norm = normaliseAccelerator(sc[action]);
+        if (norm) target.shortcuts[action] = norm;
+        else issues.push(`desktop.shortcuts.${action}: invalid accelerator`);
+      }
+    } else {
+      issues.push('desktop.shortcuts: invalid object');
+    }
+  }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -176,6 +279,8 @@ export function validateSettings(input: unknown): LoadResult {
       issues.push('accessibility: invalid object');
     }
   }
+
+  if ('desktop' in input) validateDesktop(input.desktop, settings.desktop, issues);
 
   if (input.version !== SETTINGS_VERSION) issues.push('version: migrated');
   settings.version = SETTINGS_VERSION;

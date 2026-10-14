@@ -1,10 +1,19 @@
 import { AUDIO_STATUS_LABELS, AudioEngine } from '../audio/audioEngine';
-import { cloneDefaults, validateSettings, type AppMode, type Settings } from '../config/settings';
+import {
+  cloneDefaults,
+  cloneDesktopDefaults,
+  parseSettings,
+  serializeSettings,
+  validateSettings,
+  type AppMode,
+  type Settings,
+} from '../config/settings';
 import { DemoDirector } from '../core/modes/demoDirector';
 import { TrainingSession } from '../core/modes/trainingSession';
 import { Simulation } from '../core/simulation';
 import type { CrackEvent } from '../core/whip/crackDetector';
-import { QUALITY_PRESETS, resolveParams, type WhipParams } from '../core/whip/params';
+import { QUALITY_PRESETS } from '../core/whip/params';
+import { paramsFromSettings } from '../config/physicsFromSettings';
 import { PHASE_LABELS, type WhipPhase } from '../core/whip/phaseMachine';
 import { FrameStats } from '../diagnostics/frameStats';
 import { InputController } from '../input/inputController';
@@ -22,18 +31,6 @@ const MODE_LABELS: Record<AppMode, string> = {
   slowmo: 'Cámara lenta',
   training: 'Entrenamiento',
 };
-
-export function paramsFromSettings(s: Settings): WhipParams {
-  return resolveParams({
-    length: s.length,
-    nodeCount: s.nodeCount,
-    force: s.force,
-    flexibility: s.flexibility,
-    damping: s.damping,
-    sensitivity: s.sensitivity,
-    quality: s.quality,
-  });
-}
 
 /**
  * Wires simulation, renderer, audio, input and UI together and runs the
@@ -82,7 +79,10 @@ export class LatigoApp {
       onTogglePanels: () => this.togglePanels(),
       onToggleSettingsPanel: () => this.ui.setSettingsOpen(!this.ui.settingsOpen),
       onRestoreDefaults: () => this.restoreDefaults(),
+      onRestoreDesktopDefaults: () => this.restoreDesktopDefaults(),
     });
+    const bridge = window.latigoDesktop;
+    if (bridge?.platform) this.ui.platform = bridge.platform;
     this.input = new InputController(canvas, {
       pointerMove: (x, y) => this.sim.pointerMove(this.toWorldX(x), this.toWorldY(y)),
       pointerDown: (x, y) => {
@@ -421,10 +421,13 @@ export class LatigoApp {
   restoreDefaults(): void {
     const defaults = cloneDefaults();
     defaults.mode = this.settings.mode;
+    // «Modo escritorio» has its own reset button; keep it untouched here.
+    defaults.desktop = structuredClone(this.settings.desktop);
     this.settings = defaults;
     this.ui.syncFromSettings(defaults);
     this.applySettings(defaults, true);
     this.persistence.scheduleSave(defaults, 0);
+    window.latigoDesktop?.applySettings(serializeSettings(defaults));
     this.ui.toast('Ajustes restablecidos');
   }
 
@@ -432,9 +435,10 @@ export class LatigoApp {
 
   changeSetting(path: string, value: string | number | boolean): void {
     const draft = structuredClone(this.settings) as unknown as Record<string, unknown>;
-    const [a, b] = path.split('.');
-    if (b === undefined) draft[a] = value;
-    else (draft[a] as Record<string, unknown>)[b] = value;
+    const parts = path.split('.');
+    let node = draft;
+    for (const part of parts.slice(0, -1)) node = node[part] as Record<string, unknown>;
+    node[parts[parts.length - 1]] = value;
     if (path === 'quality') draft.nodeCount = QUALITY_PRESETS[value as Settings['quality']].nodeCount;
     const { settings } = validateSettings(draft);
     const previous = this.settings;
@@ -442,10 +446,37 @@ export class LatigoApp {
     if (path === 'quality' || path === 'handleColor' || path === 'ropeColor' || path === 'theme') {
       this.ui.syncFromSettings(settings);
     }
-    if (path === 'muted' || path === 'panelsVisible') this.ui.syncFromSettings(settings);
+    if (path === 'muted' || path === 'panelsVisible' || path.startsWith('desktop.')) {
+      this.ui.syncFromSettings(settings);
+    }
     if (path === 'mode') this.onModeChange(previous.mode, settings.mode);
     this.applySettings(settings, false);
     this.persistence.scheduleSave(settings);
+    // Desktop mode lives in the main process: push every change immediately.
+    window.latigoDesktop?.applySettings(serializeSettings(settings));
+  }
+
+  /** Settings changed by the tray, a global shortcut or the overlay. */
+  applyExternalSettings(serialized: string): void {
+    const { settings } = parseSettings(serialized);
+    const previousMode = this.settings.mode;
+    this.settings = settings;
+    this.ui.syncFromSettings(settings);
+    if (previousMode !== settings.mode) this.onModeChange(previousMode, settings.mode);
+    this.applySettings(settings, false);
+    // Replace any pending save so a stale snapshot can never overwrite this one.
+    this.persistence.scheduleSave(settings);
+  }
+
+  restoreDesktopDefaults(): void {
+    const draft = structuredClone(this.settings);
+    draft.desktop = { ...cloneDesktopDefaults(), enabled: this.settings.desktop.enabled };
+    this.settings = validateSettings(draft).settings;
+    this.ui.syncFromSettings(this.settings);
+    this.applySettings(this.settings, false);
+    this.persistence.scheduleSave(this.settings, 0);
+    window.latigoDesktop?.applySettings(serializeSettings(this.settings));
+    this.ui.toast('Valores del modo escritorio restaurados');
   }
 
   private onModeChange(from: AppMode, to: AppMode): void {

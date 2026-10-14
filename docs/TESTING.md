@@ -26,6 +26,14 @@ Additional suites: audio synthesis (finite, normalised, attack < 3 ms, decay, de
 
 **Result at the initial commit (macOS 26.6, arm64, Node 26.2):** 8 files, 79 tests, all passing.
 
+**Result at the desktop-mode commit:** 9 files, 109 tests, all passing. `tests/desktop.test.ts` adds coordinate conversion (negative coordinates, gaps, unplugged monitor, resolution change), accelerator validation/recording, shortcut registration/release/conflicts, the desktop controller (activation, deactivation, toggle, pause, mute, strike, click-through, shutdown), platform capability detection (X11 vs Wayland) and settings migration v1 → v2.
+
+## Desktop-mode integration test (real OS)
+
+`npm run test:desktop` launches Electron with `--desktop-self-test` (isolated temporary profile) and drives the real overlay window, real global shortcuts (`globalShortcut`), the tray, the main window and the quit path. It prints `DESKTOP_SELFTEST {...}` and exits 0 only if every check passed. Checks include: overlay creation and readiness; transparency verified on the overlay's own pixels (`capturePage` of our window only — 0.29 % non-transparent pixels, i.e. just the whip); always-on-top; not focusable in click-through mode; overlay covers its display; global → local mapping on every display; cursor polling; all shortcuts registered; strike → physics crack event; sounds == crack events; pause freezes physics and polling; resume; mute silences without stopping physics; overlay keeps running while the main window is minimised; restore; interactive mode on/off; toggle; a shortcut already taken is reported while the others keep working; settings window shows the desktop section; closing the window with “tray” behaviour keeps the whip alive; tray “Mostrar configuración”; deactivation releases everything; re-activation; full quit leaves no overlay, polling, tray or registered shortcut.
+
+**Result (macOS 26.6, Apple Silicon, single display): 38/38 passed.** Multi-monitor movement could not be exercised on real hardware (one display) and is covered by unit tests. Actual click delivery to another application is not automated (it would require injecting OS input events); Windows and Linux have not been run.
+
 ## Smoke test (integration)
 
 `npm run smoke` builds and launches the real Electron app with `--smoke-test`. The renderer waits for the frame loop, performs an upward strike, observes 2.5 s of simulated time and reports through IPC; the process exits 0 only if physics advanced and the rope is healthy. Settings use a temporary directory.

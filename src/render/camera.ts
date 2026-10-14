@@ -10,10 +10,18 @@ export class Camera {
   shakeX = 0;
   shakeY = 0;
 
-  resize(cssWidth: number, cssHeight: number, dpr: number, reach: number): void {
+  /**
+   * `fixedPxPerMeter` (desktop overlay) sets the whip scale explicitly instead
+   * of fitting the whole reach into the view.
+   */
+  resize(cssWidth: number, cssHeight: number, dpr: number, reach: number, fixedPxPerMeter = 0): void {
     this.cssWidth = Math.max(1, cssWidth);
     this.cssHeight = Math.max(1, cssHeight);
     this.dpr = Math.max(0.5, Math.min(4, dpr || 1));
+    if (fixedPxPerMeter > 0) {
+      this.pxPerMeter = Math.max(10, fixedPxPerMeter);
+      return;
+    }
     const halfHeight = Math.max(2.4, reach * 1.2);
     const byHeight = this.cssHeight / (2 * halfHeight);
     const byWidth = this.cssWidth / (2 * reach * 1.25);

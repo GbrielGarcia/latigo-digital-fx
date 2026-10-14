@@ -1,7 +1,7 @@
 {
   "name": "latigo-digital-fx",
   "productName": "Látigo Digital FX",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Látigo Digital FX — a desktop whip simulator with real-time rope physics, visual effects and physics-synchronised sound.",
   "license": "MIT",
   "private": true,
@@ -17,6 +17,7 @@
     "start": "node scripts/build.mjs && electron .",
     "dev:web": "node scripts/build.mjs && node scripts/serve.mjs",
     "smoke": "node scripts/build.mjs && electron . --smoke-test",
+    "test:desktop": "node scripts/build.mjs && electron . --desktop-self-test",
     "bench": "node scripts/build.mjs --bench && node dist/bench/bench.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint .",

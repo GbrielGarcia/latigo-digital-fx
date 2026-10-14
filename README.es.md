@@ -17,7 +17,8 @@ Látigo Digital FX representa el látigo como una cadena de masas puntuales unid
 - **Modos**: libre, práctica, demostración, laboratorio, cámara lenta y entrenamiento.
 - **Preferencias** guardadas en el directorio de datos del usuario con validación, escritura atómica y recuperación ante archivos corruptos (se conserva una copia).
 - **Accesibilidad**: control completo por teclado, etiquetas en español, reducir movimiento, desactivar destellos, desactivar sacudidas, silencio.
-- **Privacidad**: funciona sin conexión. Sin telemetría, sin peticiones de red, sin captura de pantalla, sin ganchos globales de teclado o ratón y sin permisos de administrador.
+- **Modo escritorio**: el mismo látigo en una superposición transparente, con paso de clics y siempre encima de otras aplicaciones; sigue al cursor global, tiene atajos globales configurables (latigazo, mostrar/ocultar, pausar, silenciar), soporte multi-monitor, icono en la bandeja o barra de menús y comportamiento al cerrar configurable. Guía completa: [docs/DESKTOP_MODE.md](docs/DESKTOP_MODE.md).
+- **Privacidad**: funciona sin conexión. Sin telemetría, sin peticiones de red, sin captura de pantalla, sin registro de pulsaciones y sin permisos de administrador. En el modo escritorio solo se usan la posición del cursor y los atajos declarados, mediante APIs oficiales.
 
 ## Requisitos
 
@@ -31,15 +32,16 @@ npm install
 npm start
 ```
 
-| Comando                                        | Uso                                                     |
-| ---------------------------------------------- | ------------------------------------------------------- |
-| `npm test`                                     | Pruebas unitarias y de integración (sin interfaz)       |
-| `npm run check`                                | Tipos + linter + formato + pruebas                      |
-| `npm run smoke`                                | Abre la app real, ejecuta un golpe y emite un informe   |
-| `npm run bench`                                | Benchmark de la física en esta máquina                  |
-| `npm run dev:web`                              | Vista web de desarrollo en `http://127.0.0.1:5178`      |
-| `npm run pack:dir`                             | App sin instalador para el sistema actual en `release/` |
-| `npm run dist:mac` / `dist:win` / `dist:linux` | Instaladores y paquetes (nunca se publican)             |
+| Comando                                        | Uso                                                          |
+| ---------------------------------------------- | ------------------------------------------------------------ |
+| `npm test`                                     | Pruebas unitarias y de integración (sin interfaz)            |
+| `npm run check`                                | Tipos + linter + formato + pruebas                           |
+| `npm run test:desktop`                         | Prueba de integración del modo escritorio en el sistema real |
+| `npm run smoke`                                | Abre la app real, ejecuta un golpe y emite un informe        |
+| `npm run bench`                                | Benchmark de la física en esta máquina                       |
+| `npm run dev:web`                              | Vista web de desarrollo en `http://127.0.0.1:5178`           |
+| `npm run pack:dir`                             | App sin instalador para el sistema actual en `release/`      |
+| `npm run dist:mac` / `dist:win` / `dist:linux` | Instaladores y paquetes (nunca se publican)                  |
 
 Compilación por plataforma, firma y notarización: [docs/BUILDING.md](docs/BUILDING.md).
 
@@ -60,6 +62,17 @@ Compilación por plataforma, firma y notarización: [docs/BUILDING.md](docs/BUIL
 | `H` / `F1`                     | Ayuda                                                                                                                      |
 | `Esc`                          | Cierra la ayuda → cancela el arrastre → sale de pantalla completa → muestra paneles → cierra ajustes (nunca cierra la app) |
 
+### Atajos globales del modo escritorio (configurables)
+
+| macOS | Windows / Linux  | Acción                                    |
+| ----- | ---------------- | ----------------------------------------- |
+| ⌘⌥⇧J  | Ctrl+Alt+Shift+J | Latigazo                                  |
+| ⌘⌥⇧K  | Ctrl+Alt+Shift+K | Mostrar / ocultar el látigo de escritorio |
+| ⌘⌥⇧P  | Ctrl+Alt+Shift+P | Pausar / reanudar                         |
+| ⌘⌥⇧M  | Ctrl+Alt+Shift+M | Silenciar                                 |
+
+Permisos: ninguno en macOS (no se solicita Accesibilidad ni Monitorización de entrada) ni en Windows. En Linux con Wayland el compositor limita la lectura global del cursor y los atajos: consulta [docs/DESKTOP_MODE.md](docs/DESKTOP_MODE.md).
+
 ## Modos de uso
 
 - **Libre**: solo el látigo.
@@ -77,7 +90,7 @@ Consulta [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) y las simplificaciones fí
 
 ## Pruebas
 
-`npm test` ejecuta 79 pruebas (todas correctas en el commit inicial). Detalle, cobertura y límites en [docs/TESTING.md](docs/TESTING.md).
+`npm test` ejecuta 109 pruebas (todas correctas en el commit del modo escritorio; 79 en el commit inicial). `npm run test:desktop` ejecuta 38 comprobaciones sobre la ventana real, los atajos globales, la bandeja y la salida (38/38 en macOS 26.6 arm64). Detalle, cobertura y límites en [docs/TESTING.md](docs/TESTING.md).
 
 ## Compatibilidad
 

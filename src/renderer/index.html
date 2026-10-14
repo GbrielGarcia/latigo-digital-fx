@@ -101,6 +101,100 @@
       </header>
 
       <aside class="panel" id="settings-panel" aria-label="Ajustes">
+        <section id="desktop-section" aria-labelledby="desktop-title">
+          <h2 id="desktop-title">Modo escritorio</h2>
+          <p class="small desktop-status" id="desktop-status" role="status"></p>
+          <label class="check"
+            ><input type="checkbox" data-setting="desktop.enabled" /><span
+              >Usar el látigo sobre el escritorio y otras aplicaciones</span
+            ></label
+          >
+          <label class="check"
+            ><input type="checkbox" data-setting="desktop.overlayVisible" /><span
+              >Mostrar la superposición</span
+            ></label
+          >
+          <label class="check"
+            ><input type="checkbox" data-setting="desktop.followCursor" /><span
+              >Seguir el cursor global</span
+            ></label
+          >
+          <label class="check"
+            ><input type="checkbox" data-setting="desktop.clickThrough" /><span
+              >Paso de clics (tus aplicaciones siguen recibiendo el ratón)</span
+            ></label
+          >
+          <label class="check"
+            ><input type="checkbox" data-setting="desktop.multiMonitor" /><span
+              >Seguir el cursor entre monitores</span
+            ></label
+          >
+          <label class="check"
+            ><input type="checkbox" data-setting="desktop.sound" /><span>Sonido en el escritorio</span></label
+          >
+          <label class="slider"
+            ><span>Tamaño del látigo</span><input type="range" data-setting="desktop.whipSize" /><output
+              data-for="desktop.whipSize"
+            ></output
+          ></label>
+          <label class="slider"
+            ><span>Opacidad de los efectos</span
+            ><input type="range" data-setting="desktop.effectsOpacity" /><output
+              data-for="desktop.effectsOpacity"
+            ></output
+          ></label>
+          <label class="select-row">
+            <span>Al cerrar esta ventana</span>
+            <select data-setting="desktop.closeBehavior">
+              <option value="tray">Seguir en la bandeja</option>
+              <option value="quit">Salir de la aplicación</option>
+            </select>
+          </label>
+          <h3 class="subhead">Atajos globales</h3>
+          <div class="shortcut-row">
+            <span>Latigazo</span>
+            <kbd data-shortcut-label="strike"></kbd>
+            <button type="button" class="link" data-record="strike" aria-label="Cambiar el atajo: Latigazo">
+              Cambiar
+            </button>
+          </div>
+          <div class="shortcut-row">
+            <span>Mostrar u ocultar</span>
+            <kbd data-shortcut-label="toggle"></kbd>
+            <button
+              type="button"
+              class="link"
+              data-record="toggle"
+              aria-label="Cambiar el atajo: Mostrar u ocultar"
+            >
+              Cambiar
+            </button>
+          </div>
+          <div class="shortcut-row">
+            <span>Pausar efectos</span>
+            <kbd data-shortcut-label="pause"></kbd>
+            <button
+              type="button"
+              class="link"
+              data-record="pause"
+              aria-label="Cambiar el atajo: Pausar efectos"
+            >
+              Cambiar
+            </button>
+          </div>
+          <div class="shortcut-row">
+            <span>Silenciar</span>
+            <kbd data-shortcut-label="mute"></kbd>
+            <button type="button" class="link" data-record="mute" aria-label="Cambiar el atajo: Silenciar">
+              Cambiar
+            </button>
+          </div>
+          <p class="small shortcut-errors" id="shortcut-errors" role="alert"></p>
+          <ul class="small muted desktop-notes" id="desktop-notes"></ul>
+          <button type="button" class="btn" id="btn-desktop-defaults">
+            Restaurar valores del modo escritorio
+          </button>
+        </section>
         <section>
           <h2>Física</h2>
           <label class="slider"
@@ -274,6 +368,16 @@
               <li><b>Cámara lenta</b>: observa cómo viaja la onda hacia la punta.</li>
               <li><b>Entrenamiento</b>: acierta objetivos con el chasquido.</li>
             </ul>
+          </section>
+          <section>
+            <h3>Modo escritorio</h3>
+            <p>
+              Activa «Modo escritorio» en Ajustes para usar el látigo encima de otras aplicaciones. Con el
+              paso de clics activo, tus aplicaciones siguen recibiendo el ratón. Atajos globales
+              predeterminados: <kbd>⌘/Ctrl</kbd>+<kbd>⌥/Alt</kbd>+<kbd>⇧</kbd>+<kbd>J</kbd> latigazo,
+              <kbd>K</kbd> mostrar/ocultar, <kbd>P</kbd> pausar, <kbd>M</kbd> silenciar. Todo está también en
+              el icono de la bandeja.
+            </p>
           </section>
           <section>
             <h3>Sonido</h3>
