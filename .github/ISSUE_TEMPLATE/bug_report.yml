@@ -1,0 +1,32 @@
+name: Bug report / Informe de error
+description: Something does not work as expected. / Algo no funciona como debería.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened? / ¿Qué ocurrió?
+      description: Include the steps to reproduce. / Incluye los pasos para reproducirlo.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour / Comportamiento esperado
+  - type: input
+    id: version
+    attributes:
+      label: App version / Versión
+      placeholder: 0.1.0
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system / Sistema operativo
+      options: [macOS (Apple Silicon), macOS (Intel), Windows, Linux, Other / Otro]
+    validations:
+      required: true
+  - type: textarea
+    id: lab
+    attributes:
+      label: Lab mode data (optional) / Datos del modo laboratorio (opcional)
+      description: FPS, quality, nodes, audio status… / FPS, calidad, nodos, estado del audio…

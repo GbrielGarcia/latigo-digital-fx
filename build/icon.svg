@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#232833"/>
+      <stop offset="1" stop-color="#0c0e12"/>
+    </linearGradient>
+    <linearGradient id="rope" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#c58a52"/>
+      <stop offset="1" stop-color="#f0c48a"/>
+    </linearGradient>
+  </defs>
+  <rect x="64" y="64" width="896" height="896" rx="200" fill="url(#bg)"/>
+  <path d="M300 760 C 330 560, 520 380, 640 420 S 760 640, 610 600 S 560 330, 800 250"
+        fill="none" stroke="url(#rope)" stroke-width="34" stroke-linecap="round"/>
+  <path d="M800 250 L 860 200 M800 250 L 868 236 M800 250 L 846 182" stroke="#f6e3c4" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="820" cy="232" r="120" fill="none" stroke="#ffe9c9" stroke-opacity="0.35" stroke-width="10"/>
+  <rect x="236" y="700" width="70" height="200" rx="30" transform="rotate(20 271 800)" fill="#5a3a24"/>
+  <rect x="268" y="690" width="76" height="36" rx="12" transform="rotate(20 306 708)" fill="#c9a36a"/>
+</svg>

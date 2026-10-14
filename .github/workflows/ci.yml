@@ -1,0 +1,79 @@
+# Continuous integration: quality checks, tests and unsigned build artifacts.
+# This workflow never publishes releases and never pushes to the repository.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ELECTRON_BUILDER_PUBLISH: never
+  CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+jobs:
+  checks:
+    name: Typecheck, lint, format and unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm test
+      - name: Physics benchmark (informative)
+        run: npm run bench
+
+  build:
+    name: Build and smoke test (${{ matrix.os }})
+    needs: checks
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+      - name: Smoke test (Linux, virtual display)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgtk-3-0 libnss3 libasound2t64 libgbm1
+          # --no-sandbox is only needed on CI runners without the SUID sandbox helper.
+          xvfb-run -a npx electron . --smoke-test --no-sandbox
+      - name: Smoke test (macOS / Windows)
+        if: runner.os != 'Linux'
+        run: npx electron . --smoke-test
+
+      - name: Package (unpacked directory, unsigned)
+        run: npx electron-builder --dir --publish never
+      - name: Upload CI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: latigo-digital-fx-${{ matrix.os }}
+          path: |
+            release/*-unpacked/
+            release/mac*/
+          retention-days: 7
+          if-no-files-found: warn

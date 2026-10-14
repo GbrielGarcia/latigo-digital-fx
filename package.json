@@ -1,0 +1,146 @@
+{
+  "name": "latigo-digital-fx",
+  "productName": "Látigo Digital FX",
+  "version": "0.1.0",
+  "description": "Látigo Digital FX — a desktop whip simulator with real-time rope physics, visual effects and physics-synchronised sound.",
+  "license": "MIT",
+  "private": true,
+  "author": "Látigo Digital FX contributors",
+  "main": "dist/electron/main.cjs",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "build:prod": "node scripts/build.mjs --production",
+    "start": "node scripts/build.mjs && electron .",
+    "dev:web": "node scripts/build.mjs && node scripts/serve.mjs",
+    "smoke": "node scripts/build.mjs && electron . --smoke-test",
+    "bench": "node scripts/build.mjs --bench && node dist/bench/bench.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm test",
+    "dist": "node scripts/build.mjs --production && electron-builder --publish never",
+    "dist:mac": "node scripts/build.mjs --production && electron-builder --mac --publish never",
+    "dist:win": "node scripts/build.mjs --production && electron-builder --win --publish never",
+    "dist:linux": "node scripts/build.mjs --production && electron-builder --linux --publish never",
+    "pack:dir": "node scripts/build.mjs --production && electron-builder --dir --publish never"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.6.5",
+    "electron": "^44.7.2",
+    "electron-builder": "^26.15.3",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.12.0",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.10",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.2",
+    "vitest": "^5.0.4"
+  },
+  "keywords": [
+    "whip",
+    "physics",
+    "simulation",
+    "verlet",
+    "electron",
+    "web-audio",
+    "canvas",
+    "open-source"
+  ],
+  "build": {
+    "appId": "io.github.latigodigitalfx.app",
+    "productName": "Latigo Digital FX",
+    "artifactName": "latigo-digital-fx-${version}-${os}-${arch}.${ext}",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/renderer/**",
+      "dist/electron/**",
+      "package.json",
+      "!**/*.map"
+    ],
+    "asar": true,
+    "publish": null,
+    "mac": {
+      "category": "public.app-category.entertainment",
+      "icon": "build/icon.png",
+      "identity": "-",
+      "hardenedRuntime": true,
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "extendInfo": {
+        "CFBundleDisplayName": "Látigo Digital FX"
+      }
+    },
+    "win": {
+      "icon": "build/icon.png",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "linux": {
+      "executableName": "latigo-digital-fx",
+      "icon": "build/icon.png",
+      "category": "Game",
+      "synopsis": "Simulador de látigo con físicas, efectos y sonido",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "tar.gz",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ]
+    }
+  }
+}

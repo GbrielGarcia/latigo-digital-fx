@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'"
+    />
+    <meta
+      name="description"
+      content="Látigo Digital FX — simulador de látigo con físicas, efectos y sonido sincronizado."
+    />
+    <title>Látigo Digital FX</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <canvas
+        id="stage"
+        tabindex="0"
+        aria-label="Área de simulación del látigo. Mueve el ratón para mover el mango; arrastra y suelta para dar un latigazo; pulsa Espacio para golpear."
+      ></canvas>
+
+      <header class="topbar" id="topbar" aria-label="Controles principales">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span class="brand-name">Látigo Digital FX</span>
+        </div>
+
+        <label class="field compact">
+          <span class="field-label">Modo</span>
+          <select id="mode-select" data-setting="mode" aria-label="Modo de uso">
+            <option value="free">Libre</option>
+            <option value="practice">Práctica</option>
+            <option value="demo">Demostración</option>
+            <option value="lab">Laboratorio</option>
+            <option value="slowmo">Cámara lenta</option>
+            <option value="training">Entrenamiento</option>
+          </select>
+        </label>
+
+        <div class="group" role="group" aria-label="Acciones">
+          <button type="button" class="btn primary" id="btn-strike" title="Latigazo (Espacio)">
+            Latigazo
+          </button>
+          <button type="button" class="btn" id="btn-pause" aria-pressed="false" title="Pausa (P)">
+            Pausa
+          </button>
+          <button type="button" class="btn" id="btn-reset" title="Reiniciar látigo (R)">Reiniciar</button>
+        </div>
+
+        <div class="group" role="group" aria-label="Sonido">
+          <button type="button" class="btn" id="btn-mute" aria-pressed="false" title="Silenciar (M)">
+            Silenciar
+          </button>
+          <label class="field compact">
+            <span class="field-label">Volumen</span>
+            <input type="range" id="volume" data-setting="volume" aria-label="Volumen maestro" />
+          </label>
+        </div>
+
+        <div class="group" role="group" aria-label="Aspecto">
+          <label class="field compact">
+            <span class="field-label">Tema</span>
+            <select data-setting="theme" aria-label="Tema visual">
+              <option value="dark">Oscuro profesional</option>
+              <option value="neon">Neón futurista</option>
+              <option value="light">Minimalista claro</option>
+            </select>
+          </label>
+          <label class="field compact">
+            <span class="field-label">Calidad</span>
+            <select data-setting="quality" aria-label="Calidad gráfica y de simulación">
+              <option value="low">Baja</option>
+              <option value="medium">Media</option>
+              <option value="high">Alta</option>
+              <option value="ultra">Ultra</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="group end" role="group" aria-label="Ventana">
+          <button
+            type="button"
+            class="btn"
+            id="btn-settings"
+            aria-expanded="true"
+            aria-controls="settings-panel"
+          >
+            Ajustes
+          </button>
+          <button type="button" class="btn" id="btn-help" title="Ayuda (H)">Ayuda</button>
+          <button type="button" class="btn" id="btn-fullscreen" title="Pantalla completa (F)">
+            Pantalla completa
+          </button>
+          <button type="button" class="btn ghost" id="btn-hide" title="Ocultar paneles (O)">
+            Ocultar paneles
+          </button>
+        </div>
+      </header>
+
+      <aside class="panel" id="settings-panel" aria-label="Ajustes">
+        <section>
+          <h2>Física</h2>
+          <label class="slider"
+            ><span>Longitud</span><input type="range" data-setting="length" /><output
+              data-for="length"
+            ></output
+          ></label>
+          <label class="slider"
+            ><span>Nodos</span><input type="range" data-setting="nodeCount" /><output
+              data-for="nodeCount"
+            ></output
+          ></label>
+          <label class="slider"
+            ><span>Fuerza</span><input type="range" data-setting="force" /><output data-for="force"></output
+          ></label>
+          <label class="slider"
+            ><span>Flexibilidad</span><input type="range" data-setting="flexibility" /><output
+              data-for="flexibility"
+            ></output
+          ></label>
+          <label class="slider"
+            ><span>Amortiguación</span><input type="range" data-setting="damping" /><output
+              data-for="damping"
+            ></output
+          ></label>
+          <label class="slider"
+            ><span>Sensibilidad del ratón</span><input type="range" data-setting="sensitivity" /><output
+              data-for="sensitivity"
+            ></output
+          ></label>
+          <label class="select-row">
+            <span>Tipo de golpe</span>
+            <select data-setting="strikeStyle">
+              <option value="side">Lateral</option>
+              <option value="overhead">Por encima</option>
+              <option value="upward">Ascendente</option>
+            </select>
+          </label>
+          <label class="slider"
+            ><span>Escala de cámara lenta</span><input type="range" data-setting="slowMotionScale" /><output
+              data-for="slowMotionScale"
+            ></output
+          ></label>
+        </section>
+        <section>
+          <h2>Apariencia</h2>
+          <label class="slider"
+            ><span>Grosor</span><input type="range" data-setting="thickness" /><output
+              data-for="thickness"
+            ></output
+          ></label>
+          <label class="slider"
+            ><span>Estela</span><input type="range" data-setting="trail" /><output data-for="trail"></output
+          ></label>
+          <label class="slider"
+            ><span>Partículas</span><input type="range" data-setting="particles" /><output
+              data-for="particles"
+            ></output
+          ></label>
+          <label class="slider"
+            ><span>Intensidad de efectos</span><input type="range" data-setting="effectsIntensity" /><output
+              data-for="effectsIntensity"
+            ></output
+          ></label>
+          <div class="color-row">
+            <label><span>Color del mango</span><input type="color" data-setting="handleColor" /></label>
+            <button type="button" class="link" data-clear="handleColor">Usar tema</button>
+          </div>
+          <div class="color-row">
+            <label><span>Color de la cuerda</span><input type="color" data-setting="ropeColor" /></label>
+            <button type="button" class="link" data-clear="ropeColor">Usar tema</button>
+          </div>
+          <label class="select-row">
+            <span>Fondo</span>
+            <select data-setting="background">
+              <option value="gradient">Degradado</option>
+              <option value="solid">Liso</option>
+              <option value="grid">Cuadrícula</option>
+            </select>
+          </label>
+        </section>
+        <section>
+          <h2>Accesibilidad</h2>
+          <label class="check"
+            ><input type="checkbox" data-setting="accessibility.reduceMotion" /><span
+              >Reducir movimiento</span
+            ></label
+          >
+          <label class="check"
+            ><input type="checkbox" data-setting="accessibility.disableFlash" /><span
+              >Desactivar destellos</span
+            ></label
+          >
+          <label class="check"
+            ><input type="checkbox" data-setting="accessibility.disableShake" /><span
+              >Desactivar sacudidas</span
+            ></label
+          >
+        </section>
+        <section class="panel-footer">
+          <button type="button" class="btn" id="btn-defaults">Restablecer ajustes</button>
+          <p class="muted small" id="settings-location"></p>
+        </section>
+      </aside>
+
+      <section class="hud" id="hud" aria-live="off">
+        <div class="phase-chip" id="phase-chip" data-phase="rest">Reposo</div>
+        <div class="hud-stat"><span class="muted">Chasquidos</span> <strong id="crack-count">0</strong></div>
+        <p class="hint" id="hint"></p>
+      </section>
+
+      <section class="overlay-card lab" id="lab-panel" aria-label="Datos del laboratorio" hidden>
+        <h2>Laboratorio</h2>
+        <dl id="lab-stats"></dl>
+      </section>
+
+      <section class="overlay-card training" id="training-panel" aria-label="Entrenamiento" hidden>
+        <h2>Entrenamiento</h2>
+        <p class="muted small">Haz que el chasquido ocurra dentro del objetivo.</p>
+        <dl>
+          <dt>Aciertos</dt>
+          <dd id="train-hits">0 / 0</dd>
+          <dt>Racha</dt>
+          <dd id="train-streak">0</dd>
+          <dt>Mejor intensidad</dt>
+          <dd id="train-best">0 %</dd>
+        </dl>
+      </section>
+
+      <div class="paused-badge" id="paused-badge" hidden>En pausa</div>
+      <button type="button" class="btn show-panels" id="btn-show" hidden>Mostrar paneles (O)</button>
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+      <dialog id="help-dialog" aria-labelledby="help-title">
+        <h2 id="help-title">Ayuda de controles</h2>
+        <div class="help-grid">
+          <section>
+            <h3>Ratón y trackpad</h3>
+            <ul>
+              <li><b>Mover</b>: desplaza el mango; los movimientos rápidos generan ondas en la cuerda.</li>
+              <li><b>Clic + arrastrar</b>: prepara el golpe tirando hacia atrás (se acumula carga).</li>
+              <li><b>Soltar</b>: ejecuta el latigazo en la dirección opuesta al arrastre.</li>
+              <li>Prueba también movimientos curvos y cambios bruscos de dirección.</li>
+            </ul>
+          </section>
+          <section>
+            <h3>Teclado</h3>
+            <ul class="keys">
+              <li><kbd>Espacio</kbd> Latigazo</li>
+              <li><kbd>R</kbd> Reiniciar el látigo</li>
+              <li><kbd>P</kbd> Pausa</li>
+              <li><kbd>M</kbd> Silenciar</li>
+              <li><kbd>L</kbd> Modo laboratorio</li>
+              <li><kbd>F</kbd> Pantalla completa</li>
+              <li><kbd>O</kbd> Ocultar o mostrar paneles</li>
+              <li><kbd>H</kbd> / <kbd>F1</kbd> Esta ayuda</li>
+              <li><kbd>Esc</kbd> Cerrar ayuda, panel o pantalla completa</li>
+            </ul>
+            <p class="muted small">
+              Los atajos se ignoran mientras un control del formulario tiene el foco. Haz clic en el área del
+              látigo para devolverle el foco.
+            </p>
+          </section>
+          <section>
+            <h3>Modos</h3>
+            <ul>
+              <li><b>Libre</b>: solo el látigo.</li>
+              <li><b>Práctica</b>: fases y consejos en pantalla.</li>
+              <li><b>Demostración</b>: movimientos automáticos; toma el control cuando quieras.</li>
+              <li><b>Laboratorio</b>: FPS, nodos, velocidades, energía y estado del audio.</li>
+              <li><b>Cámara lenta</b>: observa cómo viaja la onda hacia la punta.</li>
+              <li><b>Entrenamiento</b>: acierta objetivos con el chasquido.</li>
+            </ul>
+          </section>
+          <section>
+            <h3>Sonido</h3>
+            <p>
+              El chasquido lo dispara la simulación cuando la punta supera el umbral de velocidad, no la
+              tecla. Un golpe flojo puede no chasquear: sube la fuerza o haz un movimiento más rápido.
+            </p>
+          </section>
+        </div>
+        <div class="dialog-actions">
+          <button type="button" class="btn primary" id="help-close">Cerrar</button>
+        </div>
+      </dialog>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>
